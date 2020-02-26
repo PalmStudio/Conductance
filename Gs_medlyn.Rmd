@@ -1,0 +1,168 @@
+---
+title: "Medlyn model fitting"
+author: "R. Vezy and Reni Subawati"
+date: "16/12/2019"
+output:
+  word_document:
+    toc: yes
+    toc_depth: '3'
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+  html_document:
+    code_folding: hide
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(data.table)
+```
+
+# Introduction
+
+This document aims at fitting the Medyln et al. (2011) model for stomatal conductance. This is the third step of the protocol seen in [this document](N_mapping.html).
+The objectives are to account for the effect of VPD to the photosynthesis model through its effect on stomatal conductance. The measurements have been done using a LiCOR 6400 measuring photosythesis and stomatal conductance at different atmospheric VPD (outside the chamber) on 5 leaflets positions along the leaf on 3 leaves (i.e. 9, 17, 25) and 3 palm trees from one progeny. The measurements were made on two contrasted seasons: the wet and the dry season. The 5 leaflet positions along the leaf were at point `a` (the tip), point `b`, at mid-distance between points a and b (`a-b`) and  `b `and `c` (`b-c`), and point `b`.
+Measurement were done at saturated light (PAR: 1500 umol m-2 s-1) and ambiant (i.e. atmospheric) CO2, RH, and temperature.
+
+# Data viz
+
+## Importing data
+
+```{r}
+VPD_df= fread("data/VPDdatabasedPLPE2018_R.csv", data.table = FALSE, fill = TRUE)
+# CAREFULL !!!!
+# Transpiration present two weird values, correcting them:
+VPD_df$trans[VPD_df$trans>100 & !is.na(VPD_df$trans)]= 
+  VPD_df$trans[VPD_df$trans>100 & !is.na(VPD_df$trans)]/100
+VPD_df$Date= lubridate::dmy(VPD_df$Date)
+VPD_df$hour= lubridate::hms(VPD_df$HHMMSS)@hour
+VPD_df$Rank=as.numeric(str_remove(string = VPD_df$Frond,pattern = 'F'))
+```
+
+## Computing other data
+
+```{r}
+VPD_df$Date= lubridate::dmy(VPD_df$Date)
+VPD_df$hour= lubridate::hms(VPD_df$HHMMSS)@hour
+VPD_df$Rank=as.numeric(str_remove(string = VPD_df$Frond,pattern = 'F'))
+
+###relative position on rachis
+VPD_df$PosRel=NA
+VPD_df[VPD_df$Position=='A',]$PosRel=1
+VPD_df[VPD_df$Position=='1/2_AB',]$PosRel=5/6
+VPD_df[VPD_df$Position=='B',]$PosRel=2/3
+VPD_df[VPD_df$Position=='1/4_BC',]$PosRel=0.5
+VPD_df[VPD_df$Position=='1/2_BC',]$PosRel=1/3
+```
+
+## Data visualization
+
+The first step always consist on exploring the data of conductance response according to the VPD:
+
+* Effect of the VPD on the stomatal conductance (Gs):
+
+```{r}
+VPD_df%>%
+  ggplot(aes(y= gs, x= VpdL))+
+  geom_point()+
+  ylab("Gs (umol m-2 s-1)")+
+  xlab("VPD (MPa)")+
+  ggtitle("Effect of VPD on stomatal conductance")
+```
+
+* Effect of the season (wet or dry): 
+```{r}
+VPD_df%>%
+  ggplot(aes(y= gs, x= VpdL))+
+  geom_point()+
+  facet_grid(~Season)+
+  ylab("Gs (umol m-2 s-1)")+
+  xlab("VPD (MPa)")+
+  ggtitle("Effect of VPD on stomatal conductance according to the season")
+```
+
+The season helps to better understand the variability on the data. The dry season present a slightly higher variability. This could be due to the water status of the plant, but we cannot check for this effect as neither the leaf water potential nor the soil water content were measured.
+
+* Effect of the progeny:
+
+```{r}
+VPD_df%>%
+  ggplot(aes(y= gs, x= VpdL))+
+  geom_point(aes(color=Progeny))+
+  facet_grid(~Season)+
+  ylab("Gs (umol m-2 s-1)")+
+  xlab("VPD (MPa)")+
+  ggtitle("Effect of VPD on stomatal conductance according to the season and Progeny")
+```
+
+The trend of the response of `Gs` to `VPD` appears similar between both progenies.
+
+
+* Effect of rank
+
+```{r}
+VPD_df%>%
+  ggplot(aes(y=Photo , x=VpdL ,col=as.factor(Rank)))+
+  facet_grid(Progeny~Season)+
+  geom_point()
+```
+
+No clear effect appears from the data fro the rank.
+
+# Fitting Medlyn's model
+
+The Medlyn et al. (2011) model is of the form: 
+
+$gs_{CO_2}=g_0+\left(1+\frac{g_1}{\sqrt{VPD}}\cdot\frac{A}{C_a}\right)$
+
+## Parameter fitting
+
+The model has two parameters to fit: $G_0$ and $G_1$. The LiCOR 6400 measured the conductance for $H_20$, so we have to transform it for $CO_2$ first: 
+
+$Gs_{CO_2}=\frac{Gs_{H_2O}}{1.57}$
+
+```{r}
+VPD_df$gs_c= VPD_df$gs/1.57
+```
+
+We can fit the model using a non-linear least squares with initializations at 0.0033 and 12.5 for $G_0$ and $G_1$ respectively. 
+
+```{r}
+Fit_g0_g1_c= nls(gs_c ~ g0 + (1 + g1/sqrt(VpdL)) * (Photo/400), 
+                 data= VPD_df, start = list(g0= 0.0033, g1= 12.5))
+VPD_df$gs_medlyn_CO2= coef(Fit_g0_g1_c)[1] + (1 + coef(Fit_g0_g1_c)[2]/sqrt(VPD_df$VpdL)) * (VPD_df$Photo/400)
+```
+
+The resulting equation is as follows: 
+
+```{r echo=FALSE, results='asis'}
+paste0("Gs_c=",round(coef(Fit_g0_g1_c)["g0"],3),"+\\left(1+\\frac{",round(coef(Fit_g0_g1_c)["g1"],3),"}{\\sqrt{VPD}}\\right)\\cdot\\frac{An}{C_a}+ \\hat{\\varepsilon_{i}} \\quad where \\quad \\varepsilon \\sim \\mathcal{N}(0,",round(sigma(Fit_g0_g1_c),4),")")%>%
+  paste0("$",.,"$")%>%
+  cat(.)
+
+
+```
+
+
+The resulting model can be evaluated against observations:
+
+```{r}
+VPD_df%>%
+  ggplot(aes(x= gs_c, y= gs_medlyn_CO2, colour= Season))+
+  facet_wrap(Progeny~.)+
+  geom_point()+
+  geom_abline(slope= 1 , intercept = 0)+
+  ylab("Modeled Gs (umol m-2 s-1)")+
+  xlab("Measured Gs (umol m-2 s-1)")+
+  ggtitle("Modeled and Measured stomatal conductance for each progeny and each season")
+```
+
+The figure above shows that the modeled stoamtal conductance is close to the observations for low to high values (it follows the 1:1 line in black).
