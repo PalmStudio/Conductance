@@ -74,7 +74,7 @@ VPD_df%>%
   ggplot(aes(y= gs, x= VpdL))+
   geom_point()+
   ylab("Gs (umol m-2 s-1)")+
-  xlab("VPD (MPa)")+
+  xlab("VPD (kPa)")+
   ggtitle("Effect of VPD on stomatal conductance")
 ```
 
@@ -85,7 +85,7 @@ VPD_df%>%
   geom_point()+
   facet_grid(~Season)+
   ylab("Gs (umol m-2 s-1)")+
-  xlab("VPD (MPa)")+
+  xlab("VPD (kPa)")+
   ggtitle("Effect of VPD on stomatal conductance according to the season")
 ```
 
@@ -99,8 +99,10 @@ VPD_df%>%
   geom_point(aes(color=Progeny))+
   facet_grid(~Season)+
   ylab("Gs (umol m-2 s-1)")+
-  xlab("VPD (MPa)")+
+  xlab("VPD (kPa)")+
   ggtitle("Effect of VPD on stomatal conductance according to the season and Progeny")
+
+ggsave(filename = "output/Gs_vs_VPD.png", width = 18,height = 12, units = "cm")
 ```
 
 The trend of the response of `Gs` to `VPD` appears similar between both progenies.
