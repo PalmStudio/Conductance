@@ -37,21 +37,21 @@ Measurement were done at saturated light (PAR: 1500 umol m-2 s-1) and ambiant (i
 ## Importing data
 
 ```{r}
-VPD_df= fread("data/VPDdatabasedPLPE2018_R.csv", data.table = FALSE, fill = TRUE)
+VPD_df= fread("0-data/VPDdatabasedPLPE2018_R.csv", data.table = FALSE, fill = TRUE)
 # CAREFULL !!!!
 # Transpiration present two weird values, correcting them:
 VPD_df$trans[VPD_df$trans>100 & !is.na(VPD_df$trans)]= 
   VPD_df$trans[VPD_df$trans>100 & !is.na(VPD_df$trans)]/100
 VPD_df$Date= lubridate::dmy(VPD_df$Date)
-VPD_df$hour= lubridate::hms(VPD_df$HHMMSS)@hour
+VPD_df$hour= lubridate::hms(VPD_df$HHMMSS, quiet = TRUE)@hour
 VPD_df$Rank=as.numeric(str_remove(string = VPD_df$Frond,pattern = 'F'))
 ```
 
 ## Computing other data
 
 ```{r}
-VPD_df$Date= lubridate::dmy(VPD_df$Date)
-VPD_df$hour= lubridate::hms(VPD_df$HHMMSS)@hour
+VPD_df$Date= lubridate::dmy(VPD_df$Date, quiet = TRUE)
+VPD_df$hour= lubridate::hms(VPD_df$HHMMSS, quiet = TRUE)@hour
 VPD_df$Rank=as.numeric(str_remove(string = VPD_df$Frond,pattern = 'F'))
 
 ###relative position on rachis
@@ -72,7 +72,7 @@ The first step always consist on exploring the data of conductance response acco
 ```{r}
 VPD_df%>%
   ggplot(aes(y= gs, x= VpdL))+
-  geom_point()+
+  geom_point(na.rm = TRUE)+
   ylab("Gs (umol m-2 s-1)")+
   xlab("VPD (kPa)")+
   ggtitle("Effect of VPD on stomatal conductance")
@@ -82,7 +82,7 @@ VPD_df%>%
 ```{r}
 VPD_df%>%
   ggplot(aes(y= gs, x= VpdL))+
-  geom_point()+
+  geom_point(na.rm = TRUE)+
   facet_grid(~Season)+
   ylab("Gs (umol m-2 s-1)")+
   xlab("VPD (kPa)")+
@@ -96,7 +96,7 @@ The season helps to better understand the variability on the data. The dry seaso
 ```{r}
 VPD_df%>%
   ggplot(aes(y= gs, x= VpdL))+
-  geom_point(aes(color=Progeny))+
+  geom_point(aes(color=Progeny), na.rm = TRUE)+
   facet_grid(~Season)+
   ylab("Gs (umol m-2 s-1)")+
   xlab("VPD (kPa)")+
@@ -114,7 +114,7 @@ The trend of the response of `Gs` to `VPD` appears similar between both progenie
 VPD_df%>%
   ggplot(aes(y=Photo , x=VpdL ,col=as.factor(Rank)))+
   facet_grid(Progeny~Season)+
-  geom_point()
+  geom_point(na.rm = TRUE)
 ```
 
 No clear effect appears from the data fro the rank.
@@ -160,7 +160,7 @@ The resulting model can be evaluated against observations:
 VPD_df%>%
   ggplot(aes(x= gs_c, y= gs_medlyn_CO2, colour= Season))+
   facet_wrap(Progeny~.)+
-  geom_point()+
+  geom_point(na.rm = TRUE)+
   geom_abline(slope= 1 , intercept = 0)+
   ylab("Modeled Gs (umol m-2 s-1)")+
   xlab("Measured Gs (umol m-2 s-1)")+

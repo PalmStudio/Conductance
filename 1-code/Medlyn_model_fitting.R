@@ -1,12 +1,12 @@
+# Purpose: Compute the parameters for the Medlyn et al. (2011) model from field data
+
 library(data.table)
 library(tidyverse)
 library(stringr)
 
-
-
 # Effect of VPD on photosynthesis ----------------------------------------
-# VPD_df= fread("VPDeffect_20190220_R.csv", data.table = F, fill = T)
-VPD_df= fread("Data/VPDdatabasedPLPE2018_R.csv", data.table = F, fill = T)
+
+VPD_df= fread("0-data/VPDdatabasedPLPE2018_R.csv", data.table = F, fill = T)
 
 # CAREFULL !!!!
 # Transpiration present two weird values, correcting them:
