@@ -37,7 +37,7 @@ Measurement were done at saturated light (PAR: 1500 umol m-2 s-1) and ambiant (i
 ## Importing data
 
 ```{r}
-VPD_df= fread("0-data/VPDdatabasedPLPE2018_R.csv", data.table = FALSE, fill = TRUE)
+VPD_df= fread("../0-data/VPDdatabasedPLPE2018_R.csv", data.table = FALSE, fill = TRUE)
 # CAREFULL !!!!
 # Transpiration present two weird values, correcting them:
 VPD_df$trans[VPD_df$trans>100 & !is.na(VPD_df$trans)]= 
@@ -102,7 +102,7 @@ VPD_df%>%
   xlab("VPD (kPa)")+
   ggtitle("Effect of VPD on stomatal conductance according to the season and Progeny")
 
-ggsave(filename = "output/Gs_vs_VPD.png", width = 18,height = 12, units = "cm")
+ggsave(filename = "../2-output/Gs_vs_VPD.png", width = 18,height = 12, units = "cm")
 ```
 
 The trend of the response of `Gs` to `VPD` appears similar between both progenies.

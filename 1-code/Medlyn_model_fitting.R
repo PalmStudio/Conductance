@@ -4,6 +4,12 @@ library(data.table)
 library(tidyverse)
 library(stringr)
 
+
+# Produce the report ------------------------------------------------------
+
+rmarkdown::render("1-code/Gs_medlyn.Rmd", "html_document", output_file = "Gs_report.html", 
+                  output_dir = normalizePath("2-output", mustWork = FALSE))
+
 # Effect of VPD on photosynthesis ----------------------------------------
 
 VPD_df= fread("0-data/VPDdatabasedPLPE2018_R.csv", data.table = F, fill = T)
